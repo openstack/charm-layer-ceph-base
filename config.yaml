@@ -1,14 +1,100 @@
 options:
-  string-option:
+  loglevel:
+    default: 1
+    type: int
+    description: OSD debug level. Max is 20.
+  source:
     type: string
-    default: "Default Value"
-    description: "A short description of the configuration option"
-  boolean-option:
+    default:
+    description: |
+      Optional configuration to support use of additional sources such as:
+
+        - ppa:myteam/ppa
+        - cloud:trusty-proposed/kilo
+        - http://my.archive.com/ubuntu main
+
+      The last option should be used in conjunction with the key configuration
+      option.
+
+      Note that a minimum ceph version of 0.48.2 is required for use with this
+      charm which is NOT provided by the packages in the main Ubuntu archive
+      for precise but is provided in the Ubuntu cloud archive.
+  key:
+    type: string
+    default:
+    description: |
+      Key ID to import to the apt keyring to support use with arbitary source
+      configuration from outside of Launchpad archives or PPA's.
+  use-syslog:
     type: boolean
     default: False
-    description: "A short description of the configuration option"
-  int-option:
-    type: int
-    default: 9001
-    description: "A short description of the configuration option"
+    description: |
+      If set to True, supporting services will log to syslog.
+  ceph-public-network:
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the public (front-side) network (e.g.,
+      192.168.0.0/24)
+      .
+      If multiple networks are to be used, a space-delimited list of a.b.c.d/x
+      can be provided.
+  ceph-cluster-network:
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the cluster (back-side) network (e.g.,
+      192.168.0.0/24)
+      .
+      If multiple networks are to be used, a space-delimited list of a.b.c.d/x
+      can be provided.
+  prefer-ipv6:
+    type: boolean
+    default: False
+    description: |
+      If True enables IPv6 support. The charm will expect network interfaces
+      to be configured with an IPv6 address. If set to False (default) IPv4
+      is expected.
+      .
+      NOTE: these charms do not currently support IPv6 privacy extension. In
+      order for this charm to function correctly, the privacy extension must be
+      disabled and a non-temporary address must be configured/available on
+      your network interface.
+  sysctl:
+    type: string
+    default: '{ kernel.pid_max : 2097152, vm.max_map_count : 524288,
+                kernel.threads-max: 2097152 }'
+    description: |
+      YAML-formatted associative array of sysctl key/value pairs to be set
+      persistently. By default we set pid_max, max_map_count and
+      threads-max to a high value to avoid problems with large numbers (>20)
+      of OSDs recovering. very large clusters should set those values even
+      higher (e.g. max for kernel.pid_max is 4194303).
+  nagios_context:
+    type: string
+    default: "juju"
+    type: string
+    description: |
+      Used by the nrpe-external-master subordinate charm.
+      A string that will be prepended to instance name to set the host name
+      in nagios. So for instance the hostname would be something like:
+          juju-myservice-0
+      If you're running multiple environments with the same services in them
+      this allows you to differentiate between them.
+  nagios_servicegroups:
+    default: ""
+    type: string
+    description: |
+      A comma-separated list of nagios servicegroups.
+      If left empty, the nagios_context will be used as the servicegroup
+  use-direct-io:
+    default: True
+    type: boolean
+    description: Configure use of direct IO for OSD journals.
+  harden:
+    default:
+    type: string
+    description: |
+      Apply system hardening. Supports a space-delimited list of modules
+      to run. Supported modules currently include os, ssh, apache and mysql.
 
