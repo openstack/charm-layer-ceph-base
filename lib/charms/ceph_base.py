@@ -238,7 +238,7 @@ def get_osd_tree(service):
     try:
         tree = subprocess.check_output(
             ['ceph', '--id', service,
-             'osd', 'tree', '--format=json'])
+             'osd', 'tree', '--format=json']).decode('utf-8')
         try:
             json_tree = json.loads(tree)
             crush_list = []
@@ -366,7 +366,7 @@ def is_quorum():
     ]
     if os.path.exists(asok):
         try:
-            result = json.loads(subprocess.check_output(cmd))
+            result = json.loads(subprocess.check_output(cmd).decode('utf-8'))
         except subprocess.CalledProcessError:
             return False
         except ValueError:
@@ -393,7 +393,7 @@ def is_leader():
     ]
     if os.path.exists(asok):
         try:
-            result = json.loads(subprocess.check_output(cmd))
+            result = json.loads(subprocess.check_output(cmd).decode('utf-8'))
         except subprocess.CalledProcessError:
             return False
         except ValueError:
@@ -535,7 +535,7 @@ def replace_osd(dead_osd_number,
 
 def is_osd_disk(dev):
     try:
-        info = subprocess.check_output(['sgdisk', '-i', '1', dev])
+        info = subprocess.check_output(['sgdisk', '-i', '1', dev]).decode('utf-8')
         info = info.split("\n")  # IGNORE:E1103
         for line in info:
             for ptype in CEPH_PARTITIONS:
@@ -616,7 +616,7 @@ def generate_monitor_secret():
         '--name=mon.',
         '--gen-key'
     ]
-    res = subprocess.getoutput(cmd)
+    res = subprocess.getoutput(' '.join(cmd))
 
     return "{}==".format(res.split('=')[1].strip())
 
@@ -740,7 +740,7 @@ def get_named_key(name, caps=None):
             subsystem,
             '; '.join(subcaps),
         ])
-    return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
+    return parse_key(subprocess.check_output(cmd).decode('utf-8').strip())  # IGNORE:E1103
 
 
 def upgrade_key_caps(key, caps):
@@ -779,6 +779,7 @@ def bootstrap_monitor_cluster(secret):
         mkdir('/var/run/ceph', owner=ceph_user(),
               group=ceph_user(), perms=0o755)
         mkdir(path, owner=ceph_user(), group=ceph_user())
+        mkdir("/var/lib/ceph/tmp", owner=ceph_user(), group=ceph_user())
         # end changes for Ceph >= 0.61.3
         try:
             subprocess.check_call(['ceph-authtool', keyring,
@@ -832,7 +833,7 @@ def maybe_zap_journal(journal_dev):
 def get_partitions(dev):
     cmd = ['partx', '--raw', '--noheadings', dev]
     try:
-        out = subprocess.check_output(cmd).splitlines()
+        out = subprocess.check_output(cmd).decode('utf-8').splitlines()
         log("get partitions: {}".format(out), level=DEBUG)
         return out
     except subprocess.CalledProcessError as e:
@@ -942,7 +943,7 @@ def get_running_osds():
     """Returns a list of the pids of the current running OSD daemons"""
     cmd = ['pgrep', 'ceph-osd']
     try:
-        result = subprocess.check_output(cmd)
+        result = subprocess.check_output(cmd).decode('utf-8')
         return result.split()
     except subprocess.CalledProcessError:
         return []
