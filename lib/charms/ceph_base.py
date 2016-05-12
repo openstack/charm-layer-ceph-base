@@ -17,6 +17,7 @@ import subprocess
 import time
 import os
 import re
+import socket
 import sys
 import shutil
 from charmhelpers.cli.host import mounts
@@ -27,16 +28,24 @@ from charmhelpers.core.host import (
     lsb_release,
     service_stop,
     service_restart)
+from charms.reactive import is_state
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
     WARNING,
     DEBUG,
     cached,
+    config,
+    unit_get,
     status_set,
+    relation_ids,
+    related_units,
+    relation_get,
 )
 from charmhelpers.fetch import (
-    apt_cache
+    apt_cache,
+    # apt_install,
+    # filter_installed_packages
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
@@ -47,27 +56,10 @@ from charmhelpers.contrib.storage.linux.utils import (
 #     get_unit_hostname,
 # )
 
-# Imports from utils.py
-import socket
-import re
-from charmhelpers.core.hookenv import (
-    unit_get,
-    cached,
-    config,
-    status_set,
-)
-from charmhelpers.fetch import (
-    apt_install,
-    filter_installed_packages
-)
-
-from charmhelpers.core.host import (
-    lsb_release
-)
-
 from charmhelpers.contrib.network.ip import (
     get_address_in_network,
-    get_ipv6_addr
+    get_ipv6_addr,
+    format_ipv6_addr
 )
 
 # try:
@@ -77,7 +69,24 @@ from charmhelpers.contrib.network.ip import (
 #                 fatal=True)
 #     import dns.resolver
 import dns.resolver
-### This is migrated from hooks/utils.py
+
+
+def get_mon_hosts():
+    hosts = []
+    if is_state('ceph_mon.installed'):
+        addr = get_public_addr()
+        hosts.append('{}:6789'.format(format_ipv6_addr(addr) or addr))
+
+    for relid in relation_ids('mon'):
+        for unit in related_units(relid):
+            addr = relation_get('ceph-public-address', unit, relid)
+            if addr is not None:
+                hosts.append('{}:6789'.format(
+                    format_ipv6_addr(addr) or addr))
+
+    hosts.sort()
+    return hosts
+
 
 def enable_pocket(pocket):
     apt_sources = "/etc/apt/sources.list"
@@ -163,8 +172,6 @@ def assert_charm_supports_ipv6():
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
 
-
-### This is migrated from hooks/ceph.py
 
 LEADER = 'leader'
 PEON = 'peon'
@@ -609,7 +616,7 @@ def generate_monitor_secret():
         '--name=mon.',
         '--gen-key'
     ]
-    res = subprocess.check_output(cmd)
+    res = subprocess.getoutput(cmd)
 
     return "{}==".format(res.split('=')[1].strip())
 
@@ -684,6 +691,7 @@ _upgrade_caps = {
     'mon': ['allow rwx']
 }
 
+
 def get_radosgw_key():
     return get_named_key('radosgw.gateway', _radosgw_caps)
 
@@ -706,6 +714,8 @@ osd_upgrade_caps = {
             'allow command "config-key exists"',
             ]
 }
+
+
 def get_upgrade_key():
     return get_named_key('upgrade-osd', _upgrade_caps)
 
@@ -936,63 +946,3 @@ def get_running_osds():
         return result.split()
     except subprocess.CalledProcessError:
         return []
-
-
-
-def emit_cephconf(mon_hosts):
-    networks = get_networks('ceph-public-network')
-    public_network = ', '.join(networks)
-
-    networks = get_networks('ceph-cluster-network')
-    cluster_network = ', '.join(networks)
-
-    cephcontext = {
-        'auth_supported': config('auth-supported'),
-        'mon_hosts': ' '.join(mon_hosts),
-        'fsid': leader_get('fsid'),
-        'old_auth': cmp_pkgrevno('ceph', "0.51") < 0,
-        'osd_journal_size': config('osd-journal-size'),
-        'use_syslog': str(config('use-syslog')).lower(),
-        'ceph_public_network': public_network,
-        'ceph_cluster_network': cluster_network,
-        'loglevel': config('loglevel'),
-        'dio': str(config('use-direct-io')).lower(),
-    }
-
-    if config('prefer-ipv6'):
-        dynamic_ipv6_address = get_ipv6_addr()[0]
-        if not public_network:
-            cephcontext['public_addr'] = dynamic_ipv6_address
-        if not cluster_network:
-            cephcontext['cluster_addr'] = dynamic_ipv6_address
-
-    if az_info():
-        cephcontext['crush_location'] = "root=default rack={} host={}" \
-            .format(az_info(), socket.gethostname())
-
-    # Install ceph.conf as an alternative to support
-    # co-existence with other charms that write this file
-    charm_ceph_conf = "/var/lib/charm/{}/ceph.conf".format(service_name())
-    mkdir(os.path.dirname(charm_ceph_conf), owner=ceph.ceph_user(),
-          group=ceph.ceph_user())
-    render('ceph.conf', charm_ceph_conf, cephcontext, perms=0o644)
-    install_alternative('ceph.conf', '/etc/ceph/ceph.conf',
-                        charm_ceph_conf, 100)
-
-
-def get_fsid():
-    return get_conf('fsid')
-
-
-def get_auth():
-    return get_conf('auth')
-
-
-def get_conf(name):
-    for relid in relation_ids('mon'):
-        for unit in related_units(relid):
-            conf = relation_get(name,
-                                unit, relid)
-            if conf:
-                return conf
-    return None
