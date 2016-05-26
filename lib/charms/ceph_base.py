@@ -535,7 +535,8 @@ def replace_osd(dead_osd_number,
 
 def is_osd_disk(dev):
     try:
-        info = subprocess.check_output(['sgdisk', '-i', '1', dev]).decode('utf-8')
+        info = subprocess.check_output(['sgdisk', '-i', '1', dev]) \
+            .decode('utf-8')
         info = info.split("\n")  # IGNORE:E1103
         for line in info:
             for ptype in CEPH_PARTITIONS:
@@ -735,12 +736,13 @@ def get_named_key(name, caps=None):
         'auth', 'get-or-create', 'client.{}'.format(name),
     ]
     # Add capabilities
-    for subsystem, subcaps in caps.iteritems():
+    for subsystem, subcaps in caps.items():
         cmd.extend([
             subsystem,
             '; '.join(subcaps),
         ])
-    return parse_key(subprocess.check_output(cmd).decode('utf-8').strip())  # IGNORE:E1103
+    return parse_key(subprocess.check_output(cmd)
+                     .decode('utf-8').strip())  # IGNORE:E1103
 
 
 def upgrade_key_caps(key, caps):
@@ -751,7 +753,7 @@ def upgrade_key_caps(key, caps):
     cmd = [
         "sudo", "-u", ceph_user(), 'ceph', 'auth', 'caps', key
     ]
-    for subsystem, subcaps in caps.iteritems():
+    for subsystem, subcaps in caps.items():
         cmd.extend([subsystem, '; '.join(subcaps)])
     subprocess.check_call(cmd)
 
