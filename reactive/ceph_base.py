@@ -5,6 +5,7 @@ import charms.apt
 from charms.ceph_base import (
     # get_networks,
     # get_public_addr,
+    get_peer_units,
     get_mon_hosts,
     is_bootstrapped,
     is_quorum,
@@ -28,11 +29,11 @@ from charmhelpers.core.hookenv import (
 
 from charmhelpers.core.sysctl import create as create_sysctl
 
-# from charmhelpers.contrib.hardening.harden import harden
+from charms_hardening.harden import harden
 
 
 @when_not('ceph.installed')
-# @harden()
+@harden()
 def install_ceph_base():
     charms.apt.add_source(config('source'), key=config('key'))
     charms.apt.queue_install(charms.ceph_base.PACKAGES)
@@ -41,7 +42,7 @@ def install_ceph_base():
 
 
 @when('config.changed', 'ceph.installed')
-# @harden()
+@harden()
 def config_changed():
     # # Check if an upgrade was requested
     # check_for_upgrade()
@@ -122,20 +123,6 @@ def log_monitor():
         # If there's a pending lock for this unit,
         # can i get the lock?
         # reboot the ceph-mon process
-
-
-def get_peer_units():
-    """
-    Returns a dictionary of unit names from the mon peer relation with
-    a flag indicating whether the unit has presented its address
-    """
-    units = {}
-    units[local_unit()] = True
-    for relid in relation_ids('mon'):
-        for unit in related_units(relid):
-            addr = relation_get('ceph-public-address', unit, relid)
-            units[unit] = addr is not None
-    return units
 
 
 def log_osds():

@@ -41,6 +41,8 @@ from charmhelpers.core.hookenv import (
     relation_ids,
     related_units,
     relation_get,
+    local_unit,
+    network_get_primary_address,
 )
 from charmhelpers.fetch import (
     apt_cache,
@@ -123,9 +125,35 @@ def get_host_ip(hostname=None):
             return answers[0].address
 
 
+
+@cached
+def get_public_addr():
+    if config('ceph-public-network'):
+        return get_network_addrs('ceph-public-network')[0]
+
+    try:
+        return network_get_primary_address('public')
+    except NotImplementedError:
+        log("network-get not supported", DEBUG)
+
+    return get_host_ip()
+
+
+@cached
+def get_cluster_addr():
+    if config('ceph-cluster-network'):
+        return get_network_addrs('ceph-cluster-network')[0]
+
+    try:
+        return network_get_primary_address('cluster')
+    except NotImplementedError:
+        log("network-get not supported", DEBUG)
+
+    return get_host_ip()
+
+
 def get_networks(config_opt='ceph-public-network'):
     """Get all configured networks from provided config option.
-
     If public network(s) are provided, go through them and return those for
     which we have an address configured.
     """
@@ -137,13 +165,8 @@ def get_networks(config_opt='ceph-public-network'):
     return []
 
 
-def get_public_addr():
-    return get_network_addrs('ceph-public-network')[0]
-
-
 def get_network_addrs(config_opt):
     """Get all configured public networks addresses.
-
     If public network(s) are provided, go through them and return the
     addresses we have configured on any of those networks.
     """
@@ -171,6 +194,20 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
+
+
+def get_peer_units():
+    """
+    Returns a dictionary of unit names from the mon peer relation with
+    a flag indicating whether the unit has presented its address
+    """
+    units = {}
+    units[local_unit()] = True
+    for relid in relation_ids('mon'):
+        for unit in related_units(relid):
+            addr = relation_get('ceph-public-address', unit, relid)
+            units[unit] = addr is not None
+    return units
 
 
 LEADER = 'leader'

@@ -3,3 +3,5 @@ dnspython3
 #charms_storage
 #git+https://github.com/openstack-charmers/charms.storage.git#egg=charms.storage
 git+https://github.com/chrismacnaughton/charms.storage.git#egg=charms.storage
+#charms_hardening
+git+https://github.com/ChrisMacNaughton/charms.hardening.git#egg=charms.hardening
