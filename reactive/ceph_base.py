@@ -24,7 +24,6 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_get,
     status_set,
-    local_unit
 )
 
 from charmhelpers.core.sysctl import create as create_sysctl

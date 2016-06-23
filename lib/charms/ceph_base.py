@@ -125,7 +125,6 @@ def get_host_ip(hostname=None):
             return answers[0].address
 
 
-
 @cached
 def get_public_addr():
     if config('ceph-public-network'):
