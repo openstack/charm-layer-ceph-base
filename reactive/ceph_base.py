@@ -31,8 +31,8 @@ from charmhelpers.core.sysctl import create as create_sysctl
 from charms_hardening.harden import harden
 
 
-@when_not('ceph.installed')
 @harden()
+@when_not('ceph.installed')
 def install_ceph_base():
     charms.apt.add_source(config('source'), key=config('key'))
     charms.apt.queue_install(charms.ceph_base.PACKAGES)
@@ -40,8 +40,8 @@ def install_ceph_base():
     set_state('ceph.installed')
 
 
-@when('config.changed', 'ceph.installed')
 @harden()
+@when('config.changed', 'ceph.installed')
 def config_changed():
     # # Check if an upgrade was requested
     # check_for_upgrade()
