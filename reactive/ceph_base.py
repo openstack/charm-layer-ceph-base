@@ -51,7 +51,7 @@ def config_changed():
 
 
 def assess_status():
-    '''Assess status of current unit'''
+    """Assess status of current unit"""
     statuses = set([])
     messages = set([])
     if is_state('ceph_mon.installed'):
@@ -97,15 +97,15 @@ def log_monitor():
     # mon_count > 1, peers, but no ceph-public-address
     ready = sum(1 for unit_ready in units.values() if unit_ready)
     if ready < moncount:
-        return ('waiting', 'Peer units detected, waiting for addresses')
+        return 'waiting', 'Peer units detected, waiting for addresses'
 
     # active - bootstrapped + quorum status check
     if is_bootstrapped() and is_quorum():
-        return ('active', 'Unit is ready and clustered')
+        return 'active', 'Unit is ready and clustered'
     else:
         # Unit should be running and clustered, but no quorum
         # TODO: should this be blocked or waiting?
-        return ('blocked', 'Unit not clustered (no quorum)')
+        return 'blocked', 'Unit not clustered (no quorum)'
         # If there's a pending lock for this unit,
         # can i get the lock?
         # reboot the ceph-mon process
