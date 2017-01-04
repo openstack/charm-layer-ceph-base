@@ -3,22 +3,17 @@ from charms.reactive import when, when_not, set_state, is_state
 import charms.apt
 
 from charms.ceph_base import (
-    # get_networks,
-    # get_public_addr,
     get_peer_units,
     get_mon_hosts,
     is_bootstrapped,
     is_quorum,
     get_running_osds,
+    get_running_mds,
     assert_charm_supports_ipv6
 )
 
-# from charmhelpers.core.host import (
-#     umount,
-# )
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import (
-    # log,
     config,
     relation_ids,
     related_units,
@@ -53,22 +48,10 @@ def config_changed():
     sysctl_dict = config('sysctl')
     if sysctl_dict:
         create_sysctl(sysctl_dict, '/etc/sysctl.d/50-ceph-charm.conf')
-    # if relations_of_type('nrpe-external-master'):
-    #     update_nrpe_config()
-
-    # sysctl_dict = config('sysctl')
-    # if sysctl_dict:
-    #     create_sysctl(sysctl_dict, '/etc/sysctl.d/50-ceph-osd-charm.conf')
-
-    # e_mountpoint = config('ephemeral-unmount')
-    # if e_mountpoint and ceph.filesystem_mounted(e_mountpoint):
-    #     umount(e_mountpoint)
-    # prepare_disks_and_activate()
 
 
 def assess_status():
     '''Assess status of current unit'''
-    # is_state('ceph_mon.bootstrapped')
     statuses = set([])
     messages = set([])
     if is_state('ceph_mon.installed'):
@@ -77,6 +60,10 @@ def assess_status():
         messages.add(message)
     if is_state('ceph_osd.installed'):
         (status, message) = log_osds()
+        statuses.add(status)
+        messages.add(message)
+    if is_state('cephfs.started'):
+        (status, message) = log_mds()
         statuses.add(status)
         messages.add(message)
     if 'blocked' in statuses:
@@ -148,6 +135,18 @@ def log_osds():
         return ('active',
                 'Unit is ready ({} OSD)'.format(len(running_osds)))
 
+
+def log_mds():
+    if len(relation_ids('mon')) < 1:
+        status_set('blocked', 'Missing relation: monitor')
+        return
+    running_mds = get_running_mds()
+    if not running_mds:
+        return ('blocked',
+                'No MDS detected using current configuration')
+    else:
+        return ('active',
+                'Unit is ready ({} MDS)'.format(len(running_mds)))
 
 # Per https://github.com/juju-solutions/charms.reactive/issues/33,
 # this module may be imported multiple times so ensure the

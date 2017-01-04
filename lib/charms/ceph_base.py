@@ -1,4 +1,3 @@
-
 #
 # Copyright 2012-2016 Canonical Ltd.
 #
@@ -657,7 +656,6 @@ def generate_monitor_secret():
 
     return "{}==".format(res.split('=')[1].strip())
 
-
 # OSD caps taken from ceph-create-keys
 _osd_bootstrap_caps = {
     'mon': [
@@ -975,6 +973,16 @@ def osdize_dir(path, encrypt=False):
 
 def filesystem_mounted(fs):
     return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0
+
+
+def get_running_mds():
+    """Returns a list of the pids of the current running MDS daemons"""
+    cmd = ['pgrep', 'ceph-mds']
+    try:
+        result = subprocess.check_output(cmd).decode('utf-8')
+        return result.split()
+    except subprocess.CalledProcessError:
+        return []
 
 
 def get_running_osds():
