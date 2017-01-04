@@ -116,14 +116,14 @@ def log_osds():
         # Check for mon relation
         if len(relation_ids('mon')) < 1:
             status_set('blocked', 'Missing relation: monitor')
-            return
+            return 'blocked', 'Missing relation: monitor'
 
         # Check for monitors with presented addresses
         # Check for bootstrap key presentation
         monitors = get_mon_hosts()
         if len(monitors) < 1 or not get_conf('osd_bootstrap_key'):
             status_set('waiting', 'Incomplete relation: monitor')
-            return
+            return 'waiting', 'Incomplete relation: monitor'
 
     # Check for OSD device creation parity i.e. at least some devices
     # must have been presented and used for this charm to be operational
@@ -138,15 +138,12 @@ def log_osds():
 
 def log_mds():
     if len(relation_ids('mon')) < 1:
-        status_set('blocked', 'Missing relation: monitor')
-        return
+        return 'blocked', 'Missing relation: monitor'
     running_mds = get_running_mds()
     if not running_mds:
-        return ('blocked',
-                'No MDS detected using current configuration')
+        return 'blocked', 'No MDS detected using current configuration'
     else:
-        return ('active',
-                'Unit is ready ({} MDS)'.format(len(running_mds)))
+        return 'active', 'Unit is ready ({} MDS)'.format(len(running_mds))
 
 # Per https://github.com/juju-solutions/charms.reactive/issues/33,
 # this module may be imported multiple times so ensure the
