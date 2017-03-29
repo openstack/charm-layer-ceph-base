@@ -26,7 +26,9 @@ from charmhelpers.core.host import (
     cmp_pkgrevno,
     lsb_release,
     service_stop,
-    service_restart)
+    service_restart,
+    CompareHostReleases,
+)
 from charms.reactive import is_state
 from charmhelpers.core.hookenv import (
     log,
@@ -189,7 +191,8 @@ def get_network_addrs(config_opt):
 
 def assert_charm_supports_ipv6():
     """Check whether we are able to support charms ipv6."""
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+    _release = lsb_release()['DISTRIB_CODENAME'].lower()
+    if CompareHostReleases(_release) < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
 
@@ -794,7 +797,7 @@ def upgrade_key_caps(key, caps):
 
 @cached
 def systemd():
-    return (lsb_release()['DISTRIB_CODENAME'] >= 'vivid')
+    return CompareHostReleases(lsb_release()['DISTRIB_CODENAME']) >= 'vivid'
 
 
 def bootstrap_monitor_cluster(secret):
